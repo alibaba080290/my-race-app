@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # 2. Cache npm → accélère
+      - name: Use node 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      # 3. Install deps exactement comme en local
+      - name: Install deps
+        run: npm ci --legacy-peer-deps
+
+      # 4. Lint + Prettier
+      - name: Lint
+        run: npx eslint "src/**/*.{ts,tsx}" --max-warnings=0
+
+      # 5. Build web (Expo)
+      - name: Build web bundle
+        env:
+          EXPO_NO_COMMANDS_WARNING: 1
+        run: |
+          npx expo export \
+            --platform web \
+            --output-dir web-build \
+            --no-source-map
+
+      # 6. Upload artifact (optionnel)
+      - name: 📦 Archive web build
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: web-build
+          path: web-build
