@@ -1,26 +1,24 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Race } from '../types';
 
 interface RaceCtx {
   races: Race[];
   selectedRace: Race | null;
   addRace: (r: Race) => void;
-  /** Nouvelle API : sélectionne (ou désélectionne) une course */
-  selectRace: (r: Race | null) => void;
+  selectRace: (r: Race) => void;
 }
 
 const Ctx = createContext<RaceCtx | undefined>(undefined);
 
-export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export function RaceProvider({ children }: { children: ReactNode }) {
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
 
   function addRace(r: Race) {
     setRaces((prev) => [...prev, r]);
   }
-  function selectRace(r: Race | null) {
+
+  function selectRace(r: Race) {
     setSelectedRace(r);
   }
 
@@ -29,10 +27,10 @@ export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
     </Ctx.Provider>
   );
-};
+}
 
 export function useRace() {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useRace must be used inside <RaceProvider>');
+  if (!ctx) throw new Error('useRace must be inside <RaceProvider>');
   return ctx;
 }
