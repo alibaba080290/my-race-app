@@ -1,51 +1,38 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Race, Driver, Lap } from '../types';
-import { nanoid } from 'nanoid';
+import React, { createContext, useContext, useState } from 'react';
+import { Race } from '../types';
 
-interface State {
+interface RaceCtx {
   races: Race[];
-  selectedRace?: Race;
-  addRace(r: Omit<Race, 'id' | 'drivers' | 'lapsData'>): void;
-  select(id: string): void;
-  updateDrivers(drivers: Driver[]): void;
-  addLap(lap: Omit<Lap, 'id'>): void;
+  selectedRace: Race | null;
+  addRace: (r: Race) => void;
+  /** Nouvelle API : sélectionne (ou désélectionne) une course */
+  selectRace: (r: Race | null) => void;
 }
 
-const Ctx = createContext<State | undefined>(undefined);
-export const useRace = () => {
-  const c = useContext(Ctx);
-  if (!c) throw new Error('RaceProvider absent');
-  return c;
-};
+const Ctx = createContext<RaceCtx | undefined>(undefined);
 
-export const RaceProvider = ({ children }: { children: ReactNode }) => {
+export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [races, setRaces] = useState<Race[]>([]);
-  const [selectedId, setSelectedId] = useState<string>();
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
 
-  const selectedRace = races.find((r) => r.id === selectedId);
-
-  const addRace: State['addRace'] = (r) =>
-    setRaces((prev) => [...prev, { ...r, id: nanoid(), drivers: [], lapsData: [] }]);
-
-  const select: State['select'] = (id) => setSelectedId(id);
-
-  const updateDrivers: State['updateDrivers'] = (drivers) =>
-    setRaces((rs) =>
-      rs.map((r) => (r.id === selectedId ? { ...r, drivers } : r))
-    );
-
-  const addLap: State['addLap'] = ({ driverId, timeMs, lapNo }) =>
-    setRaces((rs) =>
-      rs.map((r) =>
-        r.id === selectedId
-          ? { ...r, lapsData: [...r.lapsData, { id: nanoid(), driverId, timeMs, lapNo }] }
-          : r
-      )
-    );
+  function addRace(r: Race) {
+    setRaces((prev) => [...prev, r]);
+  }
+  function selectRace(r: Race | null) {
+    setSelectedRace(r);
+  }
 
   return (
-    <Ctx.Provider value={{ races, selectedRace, addRace, select, updateDrivers, addLap }}>
+    <Ctx.Provider value={{ races, selectedRace, addRace, selectRace }}>
       {children}
     </Ctx.Provider>
   );
 };
+
+export function useRace() {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useRace must be used inside <RaceProvider>');
+  return ctx;
+}

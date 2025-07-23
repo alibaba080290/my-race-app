@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
-import { Button, TextInput, RadioButton } from 'react-native-paper';
+import { View, TextInput, StyleSheet } from 'react-native';
+import { Button, RadioButton, HelperText } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Race } from '../types';
 import uuid from 'react-native-uuid';
 
@@ -11,60 +12,108 @@ interface Props {
 
 export default function NewRaceForm({ onSave, onCancel }: Props) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<'endurance' | 'classique'>('classique');
+  const [type, setType] = useState<'classic' | 'endurance'>('classic');
   const [laps, setLaps] = useState('10');
   const [duration, setDuration] = useState('60');
-  const [start, setStart] = useState(
-    new Date().toISOString().substring(0, 16),
-  ); // yyyy‑MM‑ddTHH:mm (HTML datetime‑local)
+  const [start, setStart] = useState<Date>(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+
+  const canSave =
+    name.trim() &&
+    (type === 'classic'
+      ? parseInt(laps, 10) > 0
+      : parseInt(duration, 10) > 0);
+
+  function handleSave() {
+    const race: Race = {
+      id: uuid.v4().toString(),
+      name: name.trim(),
+      type,
+      laps: type === 'classic' ? parseInt(laps, 10) : undefined,
+      duration: type === 'endurance' ? parseInt(duration, 10) : undefined,
+      start,
+    };
+    onSave(race);
+  }
 
   return (
-    <View>
-      <TextInput label="Nom" value={name} onChangeText={setName} />
-      <RadioButton.Group onValueChange={(v) => setType(v as any)} value={type}>
-        <RadioButton.Item label="Classique" value="classique" />
-        <RadioButton.Item label="Endurance" value="endurance" />
+    <View style={styles.wrapper}>
+      <TextInput
+        placeholder="Nom de la course"
+        value={name}
+        onChangeText={setName}
+        style={styles.input}
+      />
+
+      <RadioButton.Group
+        onValueChange={(v) => setType(v as 'classic' | 'endurance')}
+        value={type}
+      >
+        <View style={styles.row}>
+          <RadioButton value="classic" />
+          <HelperText type="info">Classique (tours)</HelperText>
+        </View>
+        <View style={styles.row}>
+          <RadioButton value="endurance" />
+          <HelperText type="info">Endurance (minutes)</HelperText>
+        </View>
       </RadioButton.Group>
-      {type === 'classique' ? (
+
+      {type === 'classic' ? (
         <TextInput
-          label="Nombre de tours"
-          keyboardType="numeric"
+          placeholder="Nombre de tours"
+          keyboardType="number-pad"
           value={laps}
           onChangeText={setLaps}
+          style={styles.input}
         />
       ) : (
         <TextInput
-          label="Durée (min)"
-          keyboardType="numeric"
+          placeholder="Durée (min)"
+          keyboardType="number-pad"
           value={duration}
           onChangeText={setDuration}
+          style={styles.input}
         />
       )}
-      <TextInput
-        label="Départ (YYYY‑MM‑DDThh:mm)"
-        value={start}
-        onChangeText={setStart}
-      />
 
       <Button
-        mode="contained"
-        onPress={() =>
-          onSave({
-            id: uuid.v4().toString(),
-            name,
-            type,
-            laps: type === 'classique' ? Number(laps) : undefined,
-            duration: type === 'endurance' ? Number(duration) : undefined,
-            start: new Date(start),
-            drivers: [],
-            lapsEvents: [],
-          })
-        }
-        style={{ marginTop: 8 }}
+        mode="outlined"
+        onPress={() => setShowPicker(true)}
+        style={{ marginBottom: 8 }}
       >
+        {`Date / heure : ${start.toLocaleString()}`}
+      </Button>
+
+      {showPicker && (
+        <DateTimePicker
+          mode="datetime"
+          value={start}
+          onChange={(_, d) => {
+            if (d) setStart(d);
+            setShowPicker(false);
+          }}
+        />
+      )}
+
+      <Button mode="contained" onPress={handleSave} disabled={!canSave}>
         Enregistrer
       </Button>
-      <Button onPress={onCancel}>Annuler</Button>
+      <Button onPress={onCancel} style={{ marginTop: 4 }}>
+        Annuler
+      </Button>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: { marginTop: 12 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 8,
+  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+});
