@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npx eslint "src/**/*.{ts,tsx}"  # ou `|| true` si tu veux
+        run: npm run lint -- --max-warnings=10
         # continue-on-error: true   # autre moyen de ne pas bloquer le job
 
       - name: Build web
