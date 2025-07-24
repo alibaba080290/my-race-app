@@ -2,12 +2,16 @@ name: lint-and-build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .  # on travaille bien à la racine du repo
 
     steps:
       - name: Checkout
@@ -23,9 +27,14 @@ jobs:
         run: npm ci
 
       - name: Lint (tolère 10 warnings)
-        run: npm run lint
+        run: npx eslint "src/**/*.{ts,tsx}" --max-warnings=10
 
-      - name: Build web (Metro)
+      # Optionnel : rendre le type-check non bloquant.
+      # Supprime ce bloc si tu ne veux pas de typecheck pour l'instant.
+      - name: Typecheck (non blocking)
+        run: npm run typecheck || true
+
+      - name: Build web (Metro export)
         run: npx expo export --platform web --output-dir dist
         env:
           EXPO_NO_TELEMETRY: "1"
@@ -36,4 +45,3 @@ jobs:
         with:
           name: web-dist
           path: dist
-
