@@ -1,6 +1,6 @@
 // src/components/Settings.tsx
 import React, { useState } from 'react';
-import { ScrollView, View, StyleSheet, Platform } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import {
   DataTable,
   Button,
@@ -14,24 +14,24 @@ import NewRaceForm from './NewRaceForm';
 import { Race } from '../types';
 import { useRace } from '../contexts/RaceContext';
 
+// Largeurs relatives (flex) – toutes les lignes/headers utilisent exactement les mêmes valeurs
 const COL = {
   check: 0.5,
-  name: 2.4,
+  name: 2.2,
   type: 1.3,
   lapsDur: 1.4,
-  date: 1.8,
+  date: 1.6,
   del: 0.6,
 };
 
 export default function Settings() {
   const theme = useTheme();
   const { races, addRace, selectRace, selectedRaceId, removeRace } = useRace();
-
   const [adding, setAdding] = useState(false);
 
   function handleSave(r: Omit<Race, 'id'>) {
-    const ok = addRace(r);
-    if (ok) setAdding(false);
+    addRace(r);
+    setAdding(false);
   }
 
   return (
@@ -42,9 +42,7 @@ export default function Settings() {
         </Button>
       )}
 
-      {adding && (
-        <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />
-      )}
+      {adding && <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />}
 
       <DataTable style={{ marginTop: 12 }}>
         <DataTable.Header>
@@ -60,12 +58,10 @@ export default function Settings() {
 
         {races.map((r) => {
           const isSel = r.id === selectedRaceId;
-          const bg = isSel ? theme.colors.primaryContainer : undefined;
-
           return (
             <DataTable.Row
               key={r.id}
-              style={[styles.row, bg && { backgroundColor: bg }]}
+              style={[styles.row, isSel && { backgroundColor: theme.colors.primaryContainer }]}
               onPress={() => selectRace(r.id)}
             >
               <DataTable.Cell style={{ flex: COL.check }}>
@@ -90,11 +86,7 @@ export default function Settings() {
               </DataTable.Cell>
 
               <DataTable.Cell style={{ flex: COL.del }} numeric>
-                <IconButton
-                  icon="delete"
-                  size={18}
-                  onPress={() => removeRace(r.id)}
-                />
+                <IconButton icon="delete" size={18} onPress={() => removeRace(r.id)} />
               </DataTable.Cell>
             </DataTable.Row>
           );

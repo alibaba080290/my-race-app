@@ -1,7 +1,7 @@
 // src/components/DateTimeField.tsx
 import React, { useState } from 'react';
-import { Platform, View } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { Platform, View, StyleSheet } from 'react-native';
+import { Button, Text } from 'react-native-paper';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -13,39 +13,36 @@ interface Props {
   label?: string;
 }
 
-/**
- * Un champ de date/heure cross-platform :
- * - Web : input type="datetime-local" (via TextInput de RN Paper)
- * - Mobile : vrai DateTimePicker natif
- */
-const DateTimeField: React.FC<Props> = ({ value, onChange, label = 'Date' }) => {
+const DateTimeField: React.FC<Props> = ({ value, onChange, label = 'Date / Heure' }) => {
   const [show, setShow] = useState(false);
 
   if (Platform.OS === 'web') {
-    // RN Web transmet la prop "type" aux <input>. On convertit le Date en string ISO local.
-    const isoLocal = value
-      ? format(value, "yyyy-MM-dd'T'HH:mm")
-      : format(new Date(), "yyyy-MM-dd'T'HH:mm");
+    // Format ISO local compatible input datetime-local
+    const toIsoLocal = (d: Date) =>
+      format(d, "yyyy-MM-dd'T'HH:mm");
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.value) return;
+      onChange(new Date(e.target.value));
+    };
 
     return (
-      <TextInput
-        label={label}
-        value={isoLocal}
-        onChangeText={(txt) => {
-          // Safari peut renvoyer '', donc on garde l'existant si vide
-          if (!txt) return;
-          onChange(new Date(txt));
-        }}
-        mode="outlined"
-        // @ts-ignore: 'type' est accepté côté web
-        type="datetime-local"
-      />
+      <View style={{ marginTop: 8 }}>
+        <Text style={styles.label}>{label}</Text>
+        {/* @ts-ignore: le JSX.native autorise les tags web côté RN Web */}
+        <input
+          type="datetime-local"
+          value={toIsoLocal(value)}
+          onChange={handleChange}
+          style={styles.inputWeb}
+        />
+      </View>
     );
   }
 
-  // --- Mobile / natif ---
+  // ----------- iOS / Android -----------
   return (
-    <View>
+    <View style={{ marginTop: 8 }}>
       <Button
         mode="outlined"
         onPress={() => setShow(true)}
@@ -67,5 +64,21 @@ const DateTimeField: React.FC<Props> = ({ value, onChange, label = 'Date' }) => 
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  label: {
+    fontSize: 12,
+    color: '#6b6b6b',
+    marginBottom: 4,
+  },
+  inputWeb: {
+    width: '100%',
+    padding: 12,
+    fontSize: 16,
+    borderRadius: 4,
+    border: '1px solid #ccc',
+    boxSizing: 'border-box' as const,
+  },
+});
 
 export default DateTimeField;

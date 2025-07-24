@@ -19,23 +19,19 @@ interface Props {
 const NewRaceForm: React.FC<Props> = ({ onSave, onCancel }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<RaceType>('classic');
-  const [laps, setLaps] = useState<string>('10');
-  const [duration, setDuration] = useState<string>('20');
-  const [start, setStart] = useState<Date>(new Date());
+  const [laps, setLaps] = useState('10');
+  const [duration, setDuration] = useState('20');
+  const [start, setStart] = useState(new Date());
 
   function handleSave() {
-    // Validation simple
     if (!name.trim()) return;
-
-    const payload = {
+    onSave({
       name: name.trim(),
       type,
       laps: type === 'classic' ? Number(laps) || 0 : undefined,
       duration: type === 'endurance' ? Number(duration) || 0 : undefined,
       start,
-    };
-
-    onSave(payload);
+    });
   }
 
   return (
