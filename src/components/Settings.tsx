@@ -14,13 +14,13 @@ import NewRaceForm from './NewRaceForm';
 import { Race } from '../types';
 import { useRace } from '../contexts/RaceContext';
 
-// Largeurs relatives (flex) – toutes les lignes/headers utilisent exactement les mêmes valeurs
+// Largeurs cohérentes pour TOUT le tableau (header + lignes)
 const COL = {
-  check: 0.5,
-  name: 2.2,
-  type: 1.3,
-  lapsDur: 1.4,
-  date: 1.6,
+  check: 0.6,
+  name: 2.0,
+  type: 1.4,
+  laps: 1.5,
+  date: 1.7,
   del: 0.6,
 };
 
@@ -45,23 +45,28 @@ export default function Settings() {
       {adding && <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />}
 
       <DataTable style={{ marginTop: 12 }}>
+        {/* ---------------- HEADER ---------------- */}
         <DataTable.Header>
           <DataTable.Title style={{ flex: COL.check }} />
           <DataTable.Title style={{ flex: COL.name }}>Course</DataTable.Title>
           <DataTable.Title style={{ flex: COL.type }}>Type</DataTable.Title>
-          <DataTable.Title style={{ flex: COL.lapsDur }} numeric>
+          <DataTable.Title style={{ flex: COL.laps }} numeric>
             Durée / Tours
           </DataTable.Title>
           <DataTable.Title style={{ flex: COL.date }}>Date</DataTable.Title>
           <DataTable.Title style={{ flex: COL.del }} numeric />
         </DataTable.Header>
 
+        {/* ---------------- ROWS ---------------- */}
         {races.map((r) => {
           const isSel = r.id === selectedRaceId;
           return (
             <DataTable.Row
               key={r.id}
-              style={[styles.row, isSel && { backgroundColor: theme.colors.primaryContainer }]}
+              style={[
+                styles.row,
+                isSel && { backgroundColor: theme.colors.primaryContainer },
+              ]}
               onPress={() => selectRace(r.id)}
             >
               <DataTable.Cell style={{ flex: COL.check }}>
@@ -77,7 +82,7 @@ export default function Settings() {
                 {r.type === 'classic' ? 'Classique' : 'Endurance'}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.lapsDur }} numeric>
+              <DataTable.Cell style={{ flex: COL.laps }} numeric>
                 {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
               </DataTable.Cell>
 
@@ -86,7 +91,11 @@ export default function Settings() {
               </DataTable.Cell>
 
               <DataTable.Cell style={{ flex: COL.del }} numeric>
-                <IconButton icon="delete" size={18} onPress={() => removeRace(r.id)} />
+                <IconButton
+                  icon="delete"
+                  size={18}
+                  onPress={() => removeRace(r.id)}
+                />
               </DataTable.Cell>
             </DataTable.Row>
           );
