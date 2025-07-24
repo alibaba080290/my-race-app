@@ -25,5 +25,15 @@ jobs:
       - name: Lint (tolère 10 warnings)
         run: npm run lint
 
-      - name: Build web
-        run: npx expo export:web
+      - name: Build web (Metro)
+        run: npx expo export --platform web --output-dir dist
+        env:
+          EXPO_NO_TELEMETRY: "1"
+          CI: "true"
+
+      - name: Upload static web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
