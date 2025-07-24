@@ -1,3 +1,7 @@
 node_modules
 dist
 web-build
+android
+ios
+# Test snapshot etc.
+*.snap

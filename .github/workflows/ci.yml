@@ -1,0 +1,46 @@
+name: lint-and-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .  # on travaille bien à la racine du repo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint (tolère 10 warnings)
+        run: npx eslint "src/**/*.{ts,tsx}" --max-warnings=10
+
+      - name: Typecheck (non blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Build web (Metro export)
+        run: npx expo export --platform web --output-dir dist
+        env:
+          EXPO_NO_TELEMETRY: "1"
+          CI: "true"
+
+      - name: Upload static web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
