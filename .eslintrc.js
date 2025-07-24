@@ -1,8 +1,24 @@
-// .eslintrc.js
-/** @type {import('eslint').Linter.Config} */
+/**
+ * ESLint config minimaliste pour Expo/React Native Web + TS
+ */
 module.exports = {
   root: true,
-  extends: ['expo', 'plugin:react-hooks/recommended', 'prettier'],
-  env: { browser: true, es2021: true },
-  ignorePatterns: ['dist', 'node_modules'],
+  parser: '@typescript-eslint/parser',
+  plugins: ['react', '@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    'plugin:react/recommended',
+  ],
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  settings: {
+    react: { version: 'detect' },
+  },
+  rules: {
+    'react/react-in-jsx-scope': 'off',
+    // Mets ici tes règles custom si besoin
+  },
 };
