@@ -1,5 +1,3 @@
 node_modules
-web-build
 dist
-coverage
-*.config.js
+web-build
