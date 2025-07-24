@@ -29,11 +29,6 @@ jobs:
       - name: Lint (tolère 10 warnings)
         run: npx eslint "src/**/*.{ts,tsx}" --max-warnings=10
 
-      # Optionnel : rendre le type-check non bloquant.
-      # Supprime ce bloc si tu ne veux pas de typecheck pour l'instant.
-      - name: Typecheck (non blocking)
-        run: npm run typecheck || true
-
       - name: Build web (Metro export)
         run: npx expo export --platform web --output-dir dist
         env:
