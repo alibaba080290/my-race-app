@@ -22,7 +22,7 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Lint
+      - name: Lint (tolère 10 warnings)
         run: npm run lint -- --max-warnings=10
 
       - name: Build web
