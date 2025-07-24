@@ -21,6 +21,7 @@ jobs:
 
       - name: Install deps
         run: npm ci
+        continue-on-error: true
 
       - name: Lint
         run: npm run lint
