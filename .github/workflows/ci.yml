@@ -1,0 +1,30 @@
+name: lint-and-build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint
+        run: npx eslint "src/**/*.{ts,tsx}"  # ou `|| true` si tu veux
+        # continue-on-error: true   # autre moyen de ne pas bloquer le job
+
+      - name: Build web
+        run: npx expo export:web

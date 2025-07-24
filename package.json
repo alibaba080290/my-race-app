@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "lint": "npx eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "build:web": "npx expo export --platform web --output-dir web-build"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -35,15 +34,11 @@
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "eslint": "^8.57.1",
+    "eslint-config-expo": "^9.2.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
     "typescript": "~5.8.3"
   },
-  "private": true,
-  "scripts": {
-    "lint": "npx eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
-    "typecheck": "tsc --noEmit",
-    "build:web": "npx expo export --platform web --output-dir web-build"
-  }
+  "private": true
 }
