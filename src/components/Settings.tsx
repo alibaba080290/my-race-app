@@ -14,13 +14,13 @@ import NewRaceForm from './NewRaceForm';
 import { Race } from '../types';
 import { useRace } from '../contexts/RaceContext';
 
-// Largeurs cohérentes pour TOUT le tableau (header + lignes)
+// Largeurs uniformes
 const COL = {
   check: 0.6,
   name: 2.0,
   type: 1.4,
-  laps: 1.5,
-  date: 1.7,
+  laps: 1.4,
+  date: 1.8,
   del: 0.6,
 };
 
@@ -45,19 +45,25 @@ export default function Settings() {
       {adding && <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />}
 
       <DataTable style={{ marginTop: 12 }}>
-        {/* ---------------- HEADER ---------------- */}
+        {/* HEADER */}
         <DataTable.Header>
           <DataTable.Title style={{ flex: COL.check }} />
-          <DataTable.Title style={{ flex: COL.name }}>Course</DataTable.Title>
-          <DataTable.Title style={{ flex: COL.type }}>Type</DataTable.Title>
-          <DataTable.Title style={{ flex: COL.laps }} numeric>
+          <DataTable.Title style={{ flex: COL.name }} textStyle={styles.headerCenter}>
+            Course
+          </DataTable.Title>
+          <DataTable.Title style={{ flex: COL.type }} textStyle={styles.headerCenter}>
+            Type
+          </DataTable.Title>
+          <DataTable.Title style={{ flex: COL.laps }} textStyle={styles.headerCenter}>
             Durée / Tours
           </DataTable.Title>
-          <DataTable.Title style={{ flex: COL.date }}>Date</DataTable.Title>
-          <DataTable.Title style={{ flex: COL.del }} numeric />
+          <DataTable.Title style={{ flex: COL.date }} textStyle={styles.headerCenter}>
+            Date
+          </DataTable.Title>
+          <DataTable.Title style={{ flex: COL.del }} />
         </DataTable.Header>
 
-        {/* ---------------- ROWS ---------------- */}
+        {/* ROWS */}
         {races.map((r) => {
           const isSel = r.id === selectedRaceId;
           return (
@@ -76,17 +82,19 @@ export default function Settings() {
                 />
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.name }}>{r.name}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: COL.name }} textStyle={styles.cellCenter}>
+                {r.name}
+              </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.type }}>
+              <DataTable.Cell style={{ flex: COL.type }} textStyle={styles.cellCenter}>
                 {r.type === 'classic' ? 'Classique' : 'Endurance'}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.laps }} numeric>
+              <DataTable.Cell style={{ flex: COL.laps }} textStyle={styles.cellCenter}>
                 {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.date }}>
+              <DataTable.Cell style={{ flex: COL.date }} textStyle={styles.cellCenter}>
                 {format(r.start, 'dd/MM/yyyy HH:mm')}
               </DataTable.Cell>
 
@@ -108,5 +116,12 @@ export default function Settings() {
 const styles = StyleSheet.create({
   row: {
     minHeight: 48,
+  },
+  headerCenter: {
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  cellCenter: {
+    textAlign: 'center',
   },
 });
