@@ -24,7 +24,6 @@ jobs:
 
       - name: Lint
         run: npm run lint -- --max-warnings=10
-        # continue-on-error: true   # autre moyen de ne pas bloquer le job
 
       - name: Build web
         run: npx expo export:web
