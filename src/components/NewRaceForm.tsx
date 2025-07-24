@@ -1,77 +1,85 @@
 // src/components/NewRaceForm.tsx
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { TextInput, Button, RadioButton, HelperText } from 'react-native-paper';
-import { Race } from '../types';
-import { nanoid } from 'nanoid';
+import { Button, RadioButton, TextInput } from 'react-native-paper';
+import { RaceType } from '../types';
 import DateTimeField from './DateTimeField';
 
 interface Props {
-  onSave: (r: Race) => void;
+  onSave: (race: {
+    name: string;
+    type: RaceType;
+    laps?: number;
+    duration?: number;
+    start: Date;
+  }) => void;
   onCancel: () => void;
 }
 
-export default function NewRaceForm({ onSave, onCancel }: Props) {
+const NewRaceForm: React.FC<Props> = ({ onSave, onCancel }) => {
   const [name, setName] = useState('');
-  const [type, setType] = useState<Race['type']>('classic');
-  const [laps, setLaps] = useState('');
-  const [duration, setDuration] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [type, setType] = useState<RaceType>('classic');
+  const [laps, setLaps] = useState<string>('10');
+  const [duration, setDuration] = useState<string>('20');
+  const [start, setStart] = useState<Date>(new Date());
 
-  const invalid =
-    !name.trim() ||
-    (type === 'classic' ? !Number(laps) : !Number(duration));
+  function handleSave() {
+    // Validation simple
+    if (!name.trim()) return;
 
-  const save = () =>
-    onSave({
-      id: nanoid(),
-      name,
+    const payload = {
+      name: name.trim(),
       type,
-      laps: type === 'classic' ? Number(laps) : undefined,
-      duration: type === 'endurance' ? Number(duration) : undefined,
-      start: date.toISOString(),
-    });
+      laps: type === 'classic' ? Number(laps) || 0 : undefined,
+      duration: type === 'endurance' ? Number(duration) || 0 : undefined,
+      start,
+    };
+
+    onSave(payload);
+  }
 
   return (
-    <View>
-      <TextInput label="Nom" value={name} onChangeText={setName} />
+    <View style={{ padding: 12, gap: 12 }}>
+      <TextInput
+        label="Nom de la course"
+        mode="outlined"
+        value={name}
+        onChangeText={setName}
+      />
 
-      <RadioButton.Group onValueChange={(v) => setType(v as any)} value={type}>
-        <RadioButton.Item label="Classique" value="classic" />
-        <RadioButton.Item label="Endurance" value="endurance" />
+      <RadioButton.Group onValueChange={(v) => setType(v as RaceType)} value={type}>
+        <RadioButton.Item label="Classique (nb de tours)" value="classic" />
+        <RadioButton.Item label="Endurance (durée min)" value="endurance" />
       </RadioButton.Group>
 
       {type === 'classic' ? (
         <TextInput
           label="Nombre de tours"
+          mode="outlined"
+          keyboardType="numeric"
           value={laps}
           onChangeText={setLaps}
-          keyboardType="numeric"
         />
       ) : (
         <TextInput
-          label="Durée (min)"
+          label="Durée (minutes)"
+          mode="outlined"
+          keyboardType="numeric"
           value={duration}
           onChangeText={setDuration}
-          keyboardType="numeric"
         />
       )}
 
-      <HelperText type="info">
-        {`Départ : ${date.toLocaleString()}`}
-      </HelperText>
+      <DateTimeField value={start} onChange={setStart} label="Date / Heure" />
 
-      <DateTimeField value={date} onChange={setDate} />
-
-      <Button
-        mode="contained"
-        onPress={save}
-        disabled={invalid}
-        style={{ marginTop: 8 }}
-      >
-        Enregistrer
-      </Button>
-      <Button onPress={onCancel}>Annuler</Button>
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+        <Button onPress={onCancel}>Annuler</Button>
+        <Button mode="contained" onPress={handleSave}>
+          Enregistrer
+        </Button>
+      </View>
     </View>
   );
-}
+};
+
+export default NewRaceForm;

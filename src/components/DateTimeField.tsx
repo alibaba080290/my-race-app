@@ -1,74 +1,71 @@
 // src/components/DateTimeField.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { TextInput, Button } from 'react-native-paper';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
-type Props = {
+interface Props {
   value: Date;
   onChange: (d: Date) => void;
-};
+  label?: string;
+}
 
-export default function DateTimeField({ value, onChange }: Props) {
-  const [open, setOpen] = React.useState(false);
+/**
+ * Un champ de date/heure cross-platform :
+ * - Web : input type="datetime-local" (via TextInput de RN Paper)
+ * - Mobile : vrai DateTimePicker natif
+ */
+const DateTimeField: React.FC<Props> = ({ value, onChange, label = 'Date' }) => {
+  const [show, setShow] = useState(false);
 
   if (Platform.OS === 'web') {
-    // Fallback DOM natif pour le web
+    // RN Web transmet la prop "type" aux <input>. On convertit le Date en string ISO local.
+    const isoLocal = value
+      ? format(value, "yyyy-MM-dd'T'HH:mm")
+      : format(new Date(), "yyyy-MM-dd'T'HH:mm");
+
     return (
-      <View style={{ marginTop: 8 }}>
-        <TextInput
-          label="Date / Heure"
-          value={format(value, 'dd/MM/yyyy HH:mm')}
-          editable={false}
-          right={<TextInput.Icon icon="calendar" onPress={() => setOpen(true)} />}
-        />
-        {open && (
-          // eslint-disable-next-line jsx-a11y/no-onchange
-          <input
-            type="datetime-local"
-            // ISO sans secondes, ex: 2025-07-24T14:30
-            value={format(value, "yyyy-MM-dd'T'HH:mm")}
-            onChange={(e) => {
-              const d = new Date(e.target.value);
-              if (!isNaN(d.getTime())) onChange(d);
-              setOpen(false);
-            }}
-            style={{
-              position: 'absolute',
-              opacity: 0,
-              width: '100%',
-              height: 48,
-              cursor: 'pointer',
-            }}
-            autoFocus
-          />
-        )}
-      </View>
+      <TextInput
+        label={label}
+        value={isoLocal}
+        onChangeText={(txt) => {
+          // Safari peut renvoyer '', donc on garde l'existant si vide
+          if (!txt) return;
+          onChange(new Date(txt));
+        }}
+        mode="outlined"
+        // @ts-ignore: 'type' est accepté côté web
+        type="datetime-local"
+      />
     );
   }
 
-  // Mobile / natif
+  // --- Mobile / natif ---
   return (
-    <View style={{ marginTop: 8 }}>
+    <View>
       <Button
-        icon="calendar"
         mode="outlined"
-        onPress={() => setOpen(true)}
+        onPress={() => setShow(true)}
+        style={{ marginTop: 8 }}
       >
-        {`Départ : ${format(value, 'dd/MM/yyyy HH:mm')}`}
+        {label} : {format(value, 'dd/MM/yyyy HH:mm')}
       </Button>
 
-      {open && (
+      {show && (
         <DateTimePicker
-          value={value}
           mode="datetime"
-          onChange={(_, d) => {
+          value={value}
+          onChange={(e: DateTimePickerEvent, d?: Date) => {
+            setShow(false);
             if (d) onChange(d);
-            setOpen(false);
           }}
         />
       )}
     </View>
   );
-}
+};
+
+export default DateTimeField;

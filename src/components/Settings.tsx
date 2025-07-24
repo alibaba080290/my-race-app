@@ -1,96 +1,99 @@
 // src/components/Settings.tsx
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View, StyleSheet, Platform } from 'react-native';
 import {
   DataTable,
   Button,
-  IconButton,
   Checkbox,
+  IconButton,
+  useTheme,
 } from 'react-native-paper';
-import { useRace } from '../contexts/RaceContext';
-import NewRaceForm from './NewRaceForm';
 import { format } from 'date-fns';
 
+import NewRaceForm from './NewRaceForm';
+import { Race } from '../types';
+import { useRace } from '../contexts/RaceContext';
+
+const COL = {
+  check: 0.5,
+  name: 2.4,
+  type: 1.3,
+  lapsDur: 1.4,
+  date: 1.8,
+  del: 0.6,
+};
+
 export default function Settings() {
-  const {
-    races,
-    selectedRace,
-    selectRace,
-    addRace,
-    deleteRace,
-  } = useRace();
+  const theme = useTheme();
+  const { races, addRace, selectRace, selectedRaceId, removeRace } = useRace();
 
   const [adding, setAdding] = useState(false);
 
-  const handleSave = (r) => {
-    addRace(r);
-    selectRace(r.id);
-    setAdding(false);
-  };
+  function handleSave(r: Omit<Race, 'id'>) {
+    const ok = addRace(r);
+    if (ok) setAdding(false);
+  }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={{ padding: 12 }}>
       {!adding && (
         <Button mode="contained" onPress={() => setAdding(true)}>
-          Nouvelle course
+          NOUVELLE COURSE
         </Button>
       )}
 
       {adding && (
-        <NewRaceForm
-          onSave={handleSave}
-          onCancel={() => setAdding(false)}
-        />
+        <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />
       )}
 
-      <DataTable>
+      <DataTable style={{ marginTop: 12 }}>
         <DataTable.Header>
-          <DataTable.Title style={styles.colCheck} />
-          <DataTable.Title style={styles.colName}>Course</DataTable.Title>
-          <DataTable.Title style={styles.colType}>Type</DataTable.Title>
-          <DataTable.Title numeric style={styles.colDuration}>
+          <DataTable.Title style={{ flex: COL.check }} />
+          <DataTable.Title style={{ flex: COL.name }}>Course</DataTable.Title>
+          <DataTable.Title style={{ flex: COL.type }}>Type</DataTable.Title>
+          <DataTable.Title style={{ flex: COL.lapsDur }} numeric>
             Durée / Tours
           </DataTable.Title>
-          <DataTable.Title style={styles.colDate}>Date</DataTable.Title>
-          <DataTable.Title numeric style={styles.colActions} />
+          <DataTable.Title style={{ flex: COL.date }}>Date</DataTable.Title>
+          <DataTable.Title style={{ flex: COL.del }} numeric />
         </DataTable.Header>
 
         {races.map((r) => {
-          const isSel = r.id === selectedRace?.id;
-          const duration =
-            r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`;
+          const isSel = r.id === selectedRaceId;
+          const bg = isSel ? theme.colors.primaryContainer : undefined;
 
           return (
             <DataTable.Row
               key={r.id}
-              style={[styles.row, isSel && styles.selected]}
+              style={[styles.row, bg && { backgroundColor: bg }]}
+              onPress={() => selectRace(r.id)}
             >
-              <DataTable.Cell style={styles.colCheck}>
+              <DataTable.Cell style={{ flex: COL.check }}>
                 <Checkbox
                   status={isSel ? 'checked' : 'unchecked'}
                   onPress={() => selectRace(r.id)}
                 />
               </DataTable.Cell>
 
-              <DataTable.Cell style={styles.colName}>{r.name}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: COL.name }}>{r.name}</DataTable.Cell>
 
-              <DataTable.Cell style={styles.colType}>
+              <DataTable.Cell style={{ flex: COL.type }}>
                 {r.type === 'classic' ? 'Classique' : 'Endurance'}
               </DataTable.Cell>
 
-              <DataTable.Cell numeric style={styles.colDuration}>
-                {duration}
+              <DataTable.Cell style={{ flex: COL.lapsDur }} numeric>
+                {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
               </DataTable.Cell>
 
-              <DataTable.Cell style={styles.colDate}>
-                {format(new Date(r.start), 'dd/MM/yyyy HH:mm')}
+              <DataTable.Cell style={{ flex: COL.date }}>
+                {format(r.start, 'dd/MM/yyyy HH:mm')}
               </DataTable.Cell>
 
-              <DataTable.Cell numeric style={styles.colActions}>
+              <DataTable.Cell style={{ flex: COL.del }} numeric>
                 <IconButton
                   icon="delete"
-                  size={16}
-                  onPress={() => deleteRace(r.id)}
+                  size={18}
+                  onPress={() => removeRace(r.id)}
                 />
               </DataTable.Cell>
             </DataTable.Row>
@@ -102,13 +105,7 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  row: {},
-  selected: { backgroundColor: '#eef' },
-  colCheck: { flex: 0.6 },
-  colName: { flex: 2 },
-  colType: { flex: 1 },
-  colDuration: { flex: 1.2 },
-  colDate: { flex: 1.6 },
-  colActions: { flex: 0.6 },
+  row: {
+    minHeight: 48,
+  },
 });
