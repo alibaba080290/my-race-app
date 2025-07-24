@@ -29,6 +29,10 @@ jobs:
       - name: Lint (tolère 10 warnings)
         run: npx eslint "src/**/*.{ts,tsx}" --max-warnings=10
 
+      - name: Typecheck (non blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
       - name: Build web (Metro export)
         run: npx expo export --platform web --output-dir dist
         env:
