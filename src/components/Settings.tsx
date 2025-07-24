@@ -1,64 +1,73 @@
-// src/components/Settings.tsx
 import React, { useState } from 'react';
-import { ScrollView, Button, StyleSheet } from 'react-native';
-import { DataTable } from 'react-native-paper';
+import { ScrollView, StyleSheet } from 'react-native';
+import {
+  DataTable,
+  Button,
+  IconButton,
+} from 'react-native-paper';
+import { useRace } from '../contexts/RaceContext';
+import NewRaceForm from './NewRaceForm';
 import { format } from 'date-fns';
 
-import NewRaceForm from './NewRaceForm';
-import { Race } from '../types';
-import { useRace } from '../contexts/RaceContext';
-
 export default function Settings() {
-  const { races, addRace, selectRace, selectedRace } = useRace();
+  const {
+    races,
+    selectedRace,
+    selectRace,
+    addRace,
+    deleteRace,
+  } = useRace();
   const [adding, setAdding] = useState(false);
 
-  // ─────────────────────────── helpers
-  function handleSave(r: Race) {
+  const handleSave = (r) => {
     addRace(r);
-    selectRace(r.id);   // on sélectionne aussitôt la nouvelle course
+    selectRace(r.id);
     setAdding(false);
-  }
+  };
 
-  // ─────────────────────────── rendu
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {!adding && (
-        <Button title="Nouvelle course" onPress={() => setAdding(true)} />
+        <Button mode="contained" onPress={() => setAdding(true)}>
+          Nouvelle course
+        </Button>
       )}
 
-      {adding && (
-        <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />
-      )}
+      {adding && <NewRaceForm onSave={handleSave} onCancel={() => setAdding(false)} />}
 
       <DataTable>
         <DataTable.Header>
-          <DataTable.Title style={{ flex: 2 }}>Course</DataTable.Title>
-          <DataTable.Title style={{ flex: 1 }}>Type</DataTable.Title>
-          <DataTable.Title style={{ flex: 1.2 }} numeric>
+          <DataTable.Title style={styles.colName}>Course</DataTable.Title>
+          <DataTable.Title style={styles.colType}>Type</DataTable.Title>
+          <DataTable.Title numeric style={styles.colDuration}>
             Durée / Tours
           </DataTable.Title>
-          <DataTable.Title style={{ flex: 1.8 }}>Date</DataTable.Title>
+          <DataTable.Title style={styles.colDate}>Date</DataTable.Title>
+          <DataTable.Title numeric style={styles.colActions} />
         </DataTable.Header>
 
         {races.map((r) => {
           const isSel = r.id === selectedRace?.id;
+          const duration =
+            r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`;
           return (
             <DataTable.Row
               key={r.id}
-              style={isSel ? styles.selectedRow : undefined}
               onPress={() => selectRace(r.id)}
+              style={isSel ? styles.selected : undefined}
             >
-              <DataTable.Cell style={{ flex: 2 }}>{r.name}</DataTable.Cell>
-              <DataTable.Cell style={{ flex: 1 }}>
+              <DataTable.Cell style={styles.colName}>{r.name}</DataTable.Cell>
+              <DataTable.Cell style={styles.colType}>
                 {r.type === 'classic' ? 'Classique' : 'Endurance'}
               </DataTable.Cell>
-
-              <DataTable.Cell style={{ flex: 1.2 }} numeric>
-                {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
+              <DataTable.Cell numeric style={styles.colDuration}>
+                {duration}
               </DataTable.Cell>
-
-              <DataTable.Cell style={{ flex: 1.8 }}>
-                {format(new Date(r.start), 'dd/MM/yyyy HH:mm')}
+              <DataTable.Cell style={styles.colDate}>
+                {format(new Date(r.start), 'dd/MM/yyyy HH:mm')}
+              </DataTable.Cell>
+              <DataTable.Cell numeric style={styles.colActions}>
+                <IconButton icon="delete" size={16} onPress={() => deleteRace(r.id)} />
               </DataTable.Cell>
             </DataTable.Row>
           );
@@ -69,10 +78,12 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-  selectedRow: {
-    backgroundColor: '#cfe2ff',
-  },
+  container: { padding: 16 },
+  selected: { backgroundColor: '#eef' },
+  /* colonnes équilibrées */
+  colName: { flex: 2 },
+  colType: { flex: 1 },
+  colDuration: { flex: 1.2 },
+  colDate: { flex: 1.6 },
+  colActions: { flex: 0.6 },
 });
