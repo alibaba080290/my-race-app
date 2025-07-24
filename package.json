@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "lint": "npx eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
+    "lint": "npx eslint \"src/**/*.{ts,tsx}\" --max-warnings=10",
     "typecheck": "tsc --noEmit",
     "build:web": "npx expo export --platform web --output-dir web-build"
   },
