@@ -1,66 +1,60 @@
 import React, { useMemo } from 'react';
-import { View, Text, Button as RNButton } from 'react-native';
-import { useRace } from '../contexts/RaceContext';
+import { ScrollView } from 'react-native';
+import { Button, DataTable, Text } from 'react-native-paper';
 import { exportCsv } from '../utils/exportCsv';
-import { Lap, Race } from '../types';
-
-/**
- * Petit utilitaire groupBy pour éviter les soucis de TS avec Object.groupBy
- */
-function groupByLap(arr: Lap[], key: (l: Lap) => string): Record<string, Lap[]> {
-  const out: Record<string, Lap[]> = {};
-  for (const item of arr) {
-    const k = key(item);
-    (out[k] ||= []).push(item);
-  }
-  return out;
-}
+import { useRace } from '../contexts/RaceContext';
+import type { Lap } from '../types';
 
 export default function Results() {
-  // Ton context expose encore selectedRace (et pas race)
-  const { selectedRace } = useRace();
+  const { selectedRace: race } = useRace();
 
-  // Hooks TOUJOURS en haut, jamais dans un if
-  const lapsByDriver = useMemo(() => {
-    const laps = selectedRace?.lapsData ?? [];
-    return groupByLap(laps, (l) => l.driverId);
-  }, [selectedRace?.lapsData]);
-
-  // Rendu si pas de course
-  if (!selectedRace) {
+  if (!race) {
     return (
-      <View style={{ padding: 16 }}>
-        <Text style={{ color: 'red' }}>Aucune course sélectionnée.</Text>
-      </View>
+      <ScrollView contentContainerStyle={{ padding: 24 }}>
+        <Text variant="titleMedium" style={{ textAlign: 'center' }}>
+          Aucune course sélectionnée
+        </Text>
+      </ScrollView>
     );
   }
 
-  const handleExport = () => {
-    // selectedRace est défini ici
-    exportCsv(selectedRace as Race);
-  };
+  /** mémo : on l’appelle toujours, pas dans un `if` */
+  const lapsByDriver = useMemo(
+    () =>
+      Object.groupBy<Lap>(race.lapsData, (l) => l.driverId) as Record<
+        string,
+        Lap[]
+      >,
+    [race.lapsData],
+  );
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
-        Résultats – {selectedRace.name}
-      </Text>
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <Button
+        mode="contained"
+        onPress={() => exportCsv(race)}
+        icon="download"
+        style={{ alignSelf: 'flex-start', marginBottom: 12 }}
+      >
+        Exporter CSV
+      </Button>
 
-      <RNButton title="Exporter CSV" onPress={handleExport} />
+      <DataTable>
+        <DataTable.Header>
+          <DataTable.Title>Pilote</DataTable.Title>
+          <DataTable.Title numeric>Nb tours</DataTable.Title>
+        </DataTable.Header>
 
-      <View style={{ marginTop: 16 }}>
-        {selectedRace.drivers.map((d) => {
+        {race.drivers.map((d) => {
           const laps = lapsByDriver[d.id] ?? [];
           return (
-            <View key={d.id} style={{ marginBottom: 8 }}>
-              <Text style={{ fontWeight: '600' }}>
-                {d.name} – {laps.length} tours
-              </Text>
-            </View>
+            <DataTable.Row key={d.id}>
+              <DataTable.Cell>{d.name}</DataTable.Cell>
+              <DataTable.Cell numeric>{laps.length}</DataTable.Cell>
+            </DataTable.Row>
           );
         })}
-      </View>
-    </View>
+      </DataTable>
+    </ScrollView>
   );
 }
-

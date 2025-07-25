@@ -1,75 +1,65 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
-import { Race, RaceContextType } from '../types';
+import type { Driver, Lap, Race, RaceType } from '../types';
+
+type RaceContextType = {
+  races: Race[];
+  selectedRaceId?: string;
+  /** Race pratique — undefined si rien de choisi */
+  selectedRace?: Race;
+  selectRace: (id: string) => void;
+  addRace: (r: Omit<Race, 'id' | 'lapsData'>) => void;
+  deleteRace: (id: string) => void;
+  updateDrivers: (drivers: Driver[]) => void;
+  addLap: (l: Lap) => void;
+};
 
 const RaceContext = createContext<RaceContextType>({} as RaceContextType);
+export const useRace = () => useContext(RaceContext);
 
-export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [races, setRaces] = useState<Race[]>([]);
-  const [selectedRaceId, setSelectedRaceId] = useState<string | undefined>();
+  const [selectedRaceId, selectRace] = useState<string>();
 
-  const addRace = useCallback<RaceContextType['addRace']>((r) => {
-    const id = nanoid();
-    const race: Race = { id, drivers: [], lapsData: [], ...r };
-    setRaces((prev) => [...prev, race]);
-    setSelectedRaceId(id);
-  }, []);
+  /* helpers --------------------------------------------------------------- */
+  function addRace(r: Omit<Race, 'id' | 'lapsData'>) {
+    setRaces((prev) => [...prev, { ...r, id: nanoid(), drivers: [], lapsData: [] }]);
+  }
 
-  const deleteRace = useCallback<RaceContextType['deleteRace']>((id) => {
+  function deleteRace(id: string) {
     setRaces((prev) => prev.filter((r) => r.id !== id));
-    setSelectedRaceId((curr) => (curr === id ? undefined : curr));
-  }, []);
+    if (id === selectedRaceId) selectRace(undefined);
+  }
 
-  const selectRace = useCallback<RaceContextType['selectRace']>((id) => {
-    setSelectedRaceId(id);
-  }, []);
+  function updateDrivers(drivers: Driver[]) {
+    setRaces((prev) =>
+      prev.map((r) => (r.id === selectedRaceId ? { ...r, drivers } : r)),
+    );
+  }
 
-  const updateDrivers = useCallback<RaceContextType['updateDrivers']>(
-    (drivers) => {
-      if (!selectedRaceId) return;
-      setRaces((prev) =>
-        prev.map((r) => (r.id === selectedRaceId ? { ...r, drivers } : r)),
-      );
-    },
-    [selectedRaceId],
-  );
+  function addLap(lap: Lap) {
+    setRaces((prev) =>
+      prev.map((r) =>
+        r.id === selectedRaceId ? { ...r, lapsData: [...r.lapsData, lap] } : r,
+      ),
+    );
+  }
 
-  const addLap = useCallback<RaceContextType['addLap']>(
-    (lap) => {
-      if (!selectedRaceId) return;
-      setRaces((prev) =>
-        prev.map((r) =>
-          r.id === selectedRaceId
-            ? { ...r, lapsData: [...r.lapsData, lap] }
-            : r,
-        ),
-      );
-    },
-    [selectedRaceId],
-  );
-
+  /* memo value ------------------------------------------------------------ */
   const value = useMemo(
     () => ({
       races,
       selectedRaceId,
+      selectedRace: races.find((r) => r.id === selectedRaceId),
+      selectRace,
       addRace,
       deleteRace,
-      selectRace,
       updateDrivers,
       addLap,
     }),
-    [races, selectedRaceId, addRace, deleteRace, selectRace, updateDrivers, addLap],
+    [races, selectedRaceId],
   );
 
   return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;
 };
 
-export const useRace = () => useContext(RaceContext);
