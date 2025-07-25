@@ -1,46 +1,55 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, FlatList } from 'react-native';
-import { Button, List, IconButton } from 'react-native-paper';
+import { View, FlatList, Text } from 'react-native';
+import { Button, TextInput, List } from 'react-native-paper';
 import { useRace } from '../contexts/RaceContext';
 import { Driver } from '../types';
 import { nanoid } from 'nanoid';
 
 export default function Registration() {
-  const { selectedRace, updateDrivers } = useRace();
+  const { races, selectedRaceId, updateDrivers } = useRace();
+  const race = races.find((r) => r.id === selectedRaceId);
   const [name, setName] = useState('');
-  const [kart, setKart] = useState('');
 
-  if (!selectedRace) return <List.Item title="Aucune course sélectionnée" />;
+  if (!race) {
+    return (
+      <View style={{ padding: 16 }}>
+        <Text style={{ color: 'red' }}>Aucune course sélectionnée.</Text>
+      </View>
+    );
+  }
 
-  function add() {
-    if (!name) return;
-    const driver: Driver = { id: nanoid(), name, kart: Number(kart) || 0 };
-    updateDrivers([...selectedRace.drivers, driver]);
+  const add = () => {
+    if (!name.trim()) return;
+    const d: Driver = { id: nanoid(), name };
+    updateDrivers([...race.drivers, d]);
     setName('');
-    setKart('');
-  }
-  function remove(id: string) {
-    updateDrivers(selectedRace.drivers.filter((d) => d.id !== id));
-  }
+  };
+
+  const removeDriver = (id: string) => {
+    updateDrivers(race.drivers.filter((dr) => dr.id !== id));
+  };
 
   return (
-    <View style={{ padding: 16 }}>
-      <TextInput placeholder="Nom" value={name} onChangeText={setName} style={styles.inp} />
-      <TextInput placeholder="Kart #" keyboardType="number-pad" value={kart} onChangeText={setKart} style={styles.inp} />
-      <Button mode="contained" onPress={add} disabled={!name}>Ajouter</Button>
+    <View style={{ padding: 16, gap: 12 }}>
+      <TextInput label="Nom du pilote" value={name} onChangeText={setName} />
+      <Button onPress={add} mode="contained">
+        Ajouter
+      </Button>
 
       <FlatList
-        data={selectedRace.drivers}
+        data={race.drivers}
         keyExtractor={(d) => d.id}
         renderItem={({ item }) => (
           <List.Item
-            title={`${item.kart} – ${item.name}`}
-            right={() => <IconButton icon="delete" onPress={() => remove(item.id)} />}
+            title={item.name}
+            right={() => (
+              <Button icon="delete" onPress={() => removeDriver(item.id)}>
+                Supprimer
+              </Button>
+            )}
           />
         )}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({ inp: { borderBottomWidth: 1, marginBottom: 8, padding: 4 } });

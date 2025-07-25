@@ -1,34 +1,45 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Button, DataTable, Text } from 'react-native-paper';
+import { Button, DataTable } from 'react-native-paper';
 import { useRace } from '../contexts/RaceContext';
 import { exportCsv } from '../utils/exportCsv';
 
 export default function Results() {
-  const { selectedRace } = useRace();
+  const { races, selectedRaceId } = useRace();
+  const race = races.find((r) => r.id === selectedRaceId);
 
-  if (!selectedRace) return <Text>Aucune course sélectionnée</Text>;
+  if (!race) {
+    return null;
+  }
 
-  const lapsByDriver = Object.groupBy(selectedRace.lapsData, (l) => l.driverId);
+  function onExport() {
+    exportCsv(race);
+  }
 
   return (
     <View style={{ padding: 16 }}>
+      <Button mode="contained" onPress={onExport} style={{ marginBottom: 16 }}>
+        Exporter CSV
+      </Button>
+
       <DataTable>
         <DataTable.Header>
           <DataTable.Title>Pilote</DataTable.Title>
-          <DataTable.Title numeric>Tours</DataTable.Title>
+          <DataTable.Title numeric>Tour</DataTable.Title>
+          <DataTable.Title numeric>Temps</DataTable.Title>
         </DataTable.Header>
-        {selectedRace.drivers.map((d) => (
-          <DataTable.Row key={d.id}>
-            <DataTable.Cell>{d.name}</DataTable.Cell>
-            <DataTable.Cell numeric>{lapsByDriver[d.id]?.length ?? 0}</DataTable.Cell>
-          </DataTable.Row>
-        ))}
-      </DataTable>
 
-      <Button mode="contained" style={{ marginTop: 16 }} onPress={() => exportCsv(selectedRace)}>
-        Exporter CSV
-      </Button>
+        {race.lapsData.map((l, i) => {
+          const driver = race.drivers.find((d) => d.id === l.driverId)?.name || '—';
+          return (
+            <DataTable.Row key={l.id}>
+              <DataTable.Cell>{driver}</DataTable.Cell>
+              <DataTable.Cell numeric>{i + 1}</DataTable.Cell>
+              <DataTable.Cell numeric>{(l.time / 1000).toFixed(2)} s</DataTable.Cell>
+            </DataTable.Row>
+          );
+        })}
+      </DataTable>
     </View>
   );
 }

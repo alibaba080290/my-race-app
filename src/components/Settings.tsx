@@ -1,79 +1,57 @@
-// src/components/Settings.tsx
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import {
-  DataTable,
-  Button,
-  Checkbox,
-  IconButton,
-  useTheme,
-} from 'react-native-paper';
-import { format } from 'date-fns';
-
+import { ScrollView, Text } from 'react-native';
+import { Button, DataTable, Checkbox } from 'react-native-paper';
+import { useRace } from '../contexts/RaceContext';
 import NewRaceForm from './NewRaceForm';
 import { Race } from '../types';
-import { useRace } from '../contexts/RaceContext';
+import { format } from 'date-fns';
 
-// Largeurs uniformes
-const COL = {
-  check: 0.6,
-  name: 2.0,
-  type: 1.4,
-  laps: 1.4,
-  date: 1.8,
-  del: 0.6,
-};
+const COL = { check: 0.08, name: 0.32, type: 0.18, laps: 0.18, date: 0.18, del: 0.06 };
 
 export default function Settings() {
-  const theme = useTheme();
-  const { races, addRace, selectRace, selectedRaceId, removeRace } = useRace();
+  const { races, selectedRaceId, selectRace, deleteRace, addRace } = useRace();
   const [adding, setAdding] = useState(false);
 
-  function handleSave(r: Omit<Race, 'id'>) {
+  function handleSave(r: Omit<Race, 'id' | 'drivers' | 'lapsData'>) {
     addRace(r);
     setAdding(false);
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 12 }}>
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
       {!adding && (
-        <Button mode="contained" onPress={() => setAdding(true)}>
+        <Button mode="contained" onPress={() => setAdding(true)} style={{ marginBottom: 16 }}>
           NOUVELLE COURSE
         </Button>
       )}
 
       {adding && <NewRaceForm onCancel={() => setAdding(false)} onSave={handleSave} />}
 
-      <DataTable style={{ marginTop: 12 }}>
-        {/* HEADER */}
+      <DataTable>
         <DataTable.Header>
-          <DataTable.Title style={{ flex: COL.check }} />
-          <DataTable.Title style={{ flex: COL.name }} textStyle={styles.headerCenter}>
-            Course
+          <DataTable.Title style={{ flex: COL.check }}>
+            <Text>{' '}</Text>
           </DataTable.Title>
-          <DataTable.Title style={{ flex: COL.type }} textStyle={styles.headerCenter}>
-            Type
-          </DataTable.Title>
-          <DataTable.Title style={{ flex: COL.laps }} textStyle={styles.headerCenter}>
+          <DataTable.Title style={{ flex: COL.name }}>Course</DataTable.Title>
+          <DataTable.Title style={{ flex: COL.type }}>Type</DataTable.Title>
+          <DataTable.Title numeric style={{ flex: COL.laps }}>
             Durée / Tours
           </DataTable.Title>
-          <DataTable.Title style={{ flex: COL.date }} textStyle={styles.headerCenter}>
+          <DataTable.Title numeric style={{ flex: COL.date }}>
             Date
           </DataTable.Title>
-          <DataTable.Title style={{ flex: COL.del }} />
+          <DataTable.Title numeric style={{ flex: COL.del }}>
+            <Text>{' '}</Text>
+          </DataTable.Title>
         </DataTable.Header>
 
-        {/* ROWS */}
         {races.map((r) => {
           const isSel = r.id === selectedRaceId;
           return (
             <DataTable.Row
               key={r.id}
-              style={[
-                styles.row,
-                isSel && { backgroundColor: theme.colors.primaryContainer },
-              ]}
               onPress={() => selectRace(r.id)}
+              style={{ backgroundColor: isSel ? '#e6dfff' : undefined }}
             >
               <DataTable.Cell style={{ flex: COL.check }}>
                 <Checkbox
@@ -82,28 +60,24 @@ export default function Settings() {
                 />
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.name }} textStyle={styles.cellCenter}>
-                {r.name}
-              </DataTable.Cell>
+              <DataTable.Cell style={{ flex: COL.name }}>{r.name}</DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.type }} textStyle={styles.cellCenter}>
+              <DataTable.Cell style={{ flex: COL.type }}>
                 {r.type === 'classic' ? 'Classique' : 'Endurance'}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.laps }} textStyle={styles.cellCenter}>
+              <DataTable.Cell numeric style={{ flex: COL.laps }}>
                 {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.date }} textStyle={styles.cellCenter}>
+              <DataTable.Cell numeric style={{ flex: COL.date }}>
                 {format(r.start, 'dd/MM/yyyy HH:mm')}
               </DataTable.Cell>
 
-              <DataTable.Cell style={{ flex: COL.del }} numeric>
-                <IconButton
-                  icon="delete"
-                  size={18}
-                  onPress={() => removeRace(r.id)}
-                />
+              <DataTable.Cell numeric style={{ flex: COL.del }}>
+                <Button compact icon="trash-can" onPress={() => deleteRace(r.id)}>
+                  {/* children obligatoires pour le type */}
+                </Button>
               </DataTable.Cell>
             </DataTable.Row>
           );
@@ -112,16 +86,3 @@ export default function Settings() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    minHeight: 48,
-  },
-  headerCenter: {
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  cellCenter: {
-    textAlign: 'center',
-  },
-});
