@@ -1,48 +1,75 @@
-// src/contexts/RaceContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Race, RaceType } from '../types';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import { nanoid } from 'nanoid';
+import { Race, RaceContextType } from '../types';
 
-type RaceContextType = {
-  races: Race[];
-  selectedRaceId?: string;
-  addRace: (r: Omit<Race, 'id'>) => boolean;
-  selectRace: (id: string) => void;
-  removeRace: (id: string) => void;
-};
+const RaceContext = createContext<RaceContextType>({} as RaceContextType);
 
-const RaceContext = createContext<RaceContextType | undefined>(undefined);
-
-export const RaceProvider = ({ children }: { children: ReactNode }) => {
+export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRaceId, setSelectedRaceId] = useState<string | undefined>();
 
-  const addRace = (r: Omit<Race, 'id'>) => {
+  const addRace = useCallback<RaceContextType['addRace']>((r) => {
     const id = nanoid();
-    const newRace: Race = { id, ...r };
-    setRaces((prev) => [...prev, newRace]);
+    const race: Race = { id, drivers: [], lapsData: [], ...r };
+    setRaces((prev) => [...prev, race]);
     setSelectedRaceId(id);
-    return true;
-  };
+  }, []);
 
-  const selectRace = (id: string) => setSelectedRaceId(id);
+  const deleteRace = useCallback<RaceContextType['deleteRace']>((id) => {
+    setRaces((prev) => prev.filter((r) => r.id !== id));
+    setSelectedRaceId((curr) => (curr === id ? undefined : curr));
+  }, []);
 
-  const removeRace = (id: string) => {
-    setRaces((prev) => prev.filter((x) => x.id !== id));
-    if (selectedRaceId === id) setSelectedRaceId(undefined);
-  };
+  const selectRace = useCallback<RaceContextType['selectRace']>((id) => {
+    setSelectedRaceId(id);
+  }, []);
 
-  return (
-    <RaceContext.Provider
-      value={{ races, selectedRaceId, addRace, selectRace, removeRace }}
-    >
-      {children}
-    </RaceContext.Provider>
+  const updateDrivers = useCallback<RaceContextType['updateDrivers']>(
+    (drivers) => {
+      if (!selectedRaceId) return;
+      setRaces((prev) =>
+        prev.map((r) => (r.id === selectedRaceId ? { ...r, drivers } : r)),
+      );
+    },
+    [selectedRaceId],
   );
+
+  const addLap = useCallback<RaceContextType['addLap']>(
+    (lap) => {
+      if (!selectedRaceId) return;
+      setRaces((prev) =>
+        prev.map((r) =>
+          r.id === selectedRaceId
+            ? { ...r, lapsData: [...r.lapsData, lap] }
+            : r,
+        ),
+      );
+    },
+    [selectedRaceId],
+  );
+
+  const value = useMemo(
+    () => ({
+      races,
+      selectedRaceId,
+      addRace,
+      deleteRace,
+      selectRace,
+      updateDrivers,
+      addLap,
+    }),
+    [races, selectedRaceId, addRace, deleteRace, selectRace, updateDrivers, addLap],
+  );
+
+  return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;
 };
 
-export const useRace = () => {
-  const ctx = useContext(RaceContext);
-  if (!ctx) throw new Error('useRace must be used within RaceProvider');
-  return ctx;
-};
+export const useRace = () => useContext(RaceContext);

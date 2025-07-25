@@ -1,0 +1,705 @@
+*** Begin Patch
+*** Update File: src/types.ts
+@@
+-export type RaceType = 'classic' | 'endurance';
++export type RaceType = 'classic' | 'endurance';
+ 
+ export interface Driver {
+   id: string;
+   name: string;
+ }
+ 
+ export interface Lap {
+   id: string;
+   driverId: string;
+   time: number; // ms
+ }
+ 
+ export interface Race {
+   id: string;
+   name: string;
+   type: RaceType;
+   laps?: number;
+   duration?: number; // minutes
+   start: Date;
+-  // Ajouts pour typer le contexte
+-  drivers: Driver[];
+-  lapsData: Lap[];
++  drivers: Driver[];
++  lapsData: Lap[];
+ }
+ 
+-export interface RaceContextType {
+-  races: Race[];
+-  selectedRaceId?: string;
+-  addRace: (race: Omit<Race, 'id'>) => void;
+-  deleteRace: (id: string) => void;
+-  selectRace: (id: string) => void;
+-  updateDrivers: (drivers: Driver[]) => void;
+-  addLap: (lap: Lap) => void;
+-}
++export interface RaceContextType {
++  races: Race[];
++  selectedRaceId?: string;
++  addRace: (race: Omit<Race, 'id' | 'drivers' | 'lapsData'>) => void;
++  deleteRace: (id: string) => void;
++  selectRace: (id: string) => void;
++  updateDrivers: (drivers: Driver[]) => void;
++  addLap: (lap: Lap) => void;
++}
+*** End Patch
+*** Begin Patch
+*** Update File: src/contexts/RaceContext.tsx
+@@
+-import React, { createContext, useContext } from 'react';
+-import { Race, RaceContextType, Driver, Lap } from '../types';
++import React, { createContext, useContext, useState, useMemo } from 'react';
++import { Race, RaceContextType, Driver, Lap, RaceType } from '../types';
++import { nanoid } from 'nanoid';
+ 
+-const RaceContext = createContext<RaceContextType>({} as RaceContextType);
++const RaceContext = createContext<RaceContextType>({} as RaceContextType);
+ 
+ export const RaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+-  // TODO: implémenter
+-  return <RaceContext.Provider value={{} as RaceContextType}>{children}</RaceContext.Provider>;
++  const [races, setRaces] = useState<Race[]>([]);
++  const [selectedRaceId, setSelectedRaceId] = useState<string | undefined>(undefined);
++
++  const addRace: RaceContextType['addRace'] = (r) => {
++    const id = nanoid();
++    const race: Race = {
++      id,
++      drivers: [],
++      lapsData: [],
++      ...r,
++    };
++    setRaces((prev) => [...prev, race]);
++    setSelectedRaceId(id);
++  };
++
++  const deleteRace: RaceContextType['deleteRace'] = (id) => {
++    setRaces((prev) => prev.filter((r) => r.id !== id));
++    setSelectedRaceId((curr) => (curr === id ? undefined : curr));
++  };
++
++  const selectRace: RaceContextType['selectRace'] = (id) => {
++    setSelectedRaceId(id);
++  };
++
++  const updateDrivers: RaceContextType['updateDrivers'] = (drivers) => {
++    if (!selectedRaceId) return;
++    setRaces((prev) =>
++      prev.map((r) => (r.id === selectedRaceId ? { ...r, drivers } : r)),
++    );
++  };
++
++  const addLap: RaceContextType['addLap'] = (lap) => {
++    if (!selectedRaceId) return;
++    setRaces((prev) =>
++      prev.map((r) =>
++        r.id === selectedRaceId ? { ...r, lapsData: [...r.lapsData, lap] } : r,
++      ),
++    );
++  };
++
++  const value = useMemo<RaceContextType>(
++    () => ({
++      races,
++      selectedRaceId,
++      addRace,
++      deleteRace,
++      selectRace,
++      updateDrivers,
++      addLap,
++    }),
++    [races, selectedRaceId],
++  );
++
++  return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;
+ };
+ 
+ export const useRace = () => useContext(RaceContext);
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/DateTimeField.tsx
+@@
+-import React from 'react';
+-import { Platform, StyleSheet, Text, View } from 'react-native';
+-import DateTimePicker from '@react-native-community/datetimepicker';
++import React from 'react';
++import { Platform, StyleSheet, Text, View } from 'react-native';
++import DateTimePicker from '@react-native-community/datetimepicker';
+ 
+ interface Props {
+   label: string;
+   value: Date;
+   onChange: (d: Date) => void;
+ }
+ 
+-export default function DateTimeField({ label, value, onChange }: Props) {
+-  if (Platform.OS === 'web') {
+-    return (
+-      <View style={{ marginBottom: 16 }}>
+-        <Text style={styles.label}>{label}</Text>
+-        <input
+-          type="datetime-local"
+-          value={toInputValue(value)}
+-          onChange={(e) => onChange(new Date(e.target.value))}
+-          style={styles.inputWeb as any}
+-        />
+-      </View>
+-    );
+-  }
++export default function DateTimeField({ label, value, onChange }: Props) {
++  if (Platform.OS === 'web') {
++    return (
++      <View style={{ marginBottom: 16 }}>
++        <Text style={styles.label}>{label}</Text>
++        <input
++          type="datetime-local"
++          value={toInputValue(value)}
++          onChange={(e) => onChange(new Date(e.target.value))}
++          style={webInputStyle}
++        />
++      </View>
++    );
++  }
+ 
+   return (
+     <View style={{ marginBottom: 16 }}>
+       <Text style={styles.label}>{label}</Text>
+       <DateTimePicker
+         mode="datetime"
+         value={value}
+         onChange={(_, d) => d && onChange(d)}
+       />
+     </View>
+   );
+ }
+ 
+ function toInputValue(d: Date) {
+   const pad = (n: number) => `${n}`.padStart(2, '0');
+   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+     d.getHours(),
+   )}:${pad(d.getMinutes())}`;
+ }
+ 
+-const styles = StyleSheet.create({
+-  label: { fontSize: 14, color: '#666', marginBottom: 4 },
+-  inputWeb: {
+-    width: '100%',
+-    padding: 8,
+-    fontSize: 16,
+-    borderRadius: 4,
+-    border: '1px solid #ccc',
+-    boxSizing: 'border-box',
+-  },
+-});
++const styles = StyleSheet.create({
++  label: { fontSize: 14, color: '#666', marginBottom: 4 },
++});
++
++// Objet CSS pour le web (pas via StyleSheet)
++const webInputStyle: React.CSSProperties = {
++  width: '100%',
++  padding: 8,
++  fontSize: 16,
++  borderRadius: 4,
++  border: '1px solid #ccc',
++  boxSizing: 'border-box',
++};
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/Settings.tsx
+@@
+-import React, { useState } from 'react';
+-import { ScrollView } from 'react-native';
+-import { Button, DataTable, Checkbox } from 'react-native-paper';
+-import { useRace } from '../contexts/RaceContext';
+-import NewRaceForm from './NewRaceForm';
+-import { Race } from '../types';
+-import { format } from 'date-fns';
++import React, { useState } from 'react';
++import { ScrollView, View } from 'react-native';
++import { Button, DataTable, Checkbox } from 'react-native-paper';
++import { useRace } from '../contexts/RaceContext';
++import NewRaceForm from './NewRaceForm';
++import { Race, RaceType } from '../types';
++import { format } from 'date-fns';
+ 
+ export default function Settings() {
+   const { races, selectedRaceId, selectRace, deleteRace, addRace } = useRace();
+   const [adding, setAdding] = useState(false);
+ 
+-  function handleSave(r: Omit<Race, 'id'>) {
+-    addRace(r);
++  function handleSave(r: Omit<Race, 'id' | 'drivers' | 'lapsData'>) {
++    addRace(r);
+     setAdding(false);
+   }
+ 
+   return (
+-    <ScrollView contentContainerStyle={{ padding: 16 }}>
++    <ScrollView contentContainerStyle={{ padding: 16 }}>
+       {!adding && (
+         <Button mode="contained" onPress={() => setAdding(true)} style={{ marginBottom: 16 }}>
+           Nouvelle course
+         </Button>
+       )}
+@@
+-      <DataTable>
+-        <DataTable.Header>
+-          <DataTable.Title>Course</DataTable.Title>
+-          <DataTable.Title>Type</DataTable.Title>
+-          <DataTable.Title numeric>Durée / ToursDate</DataTable.Title>
+-        </DataTable.Header>
++      <DataTable>
++        <DataTable.Header>
++          <DataTable.Title style={{ flex: 0.1 }}> </DataTable.Title>
++          <DataTable.Title style={{ flex: 0.35 }}>Course</DataTable.Title>
++          <DataTable.Title style={{ flex: 0.2 }}>Type</DataTable.Title>
++          <DataTable.Title numeric style={{ flex: 0.2 }}>
++            Durée / Tours
++          </DataTable.Title>
++          <DataTable.Title numeric style={{ flex: 0.25 }}>
++            Date
++          </DataTable.Title>
++          <DataTable.Title numeric style={{ flex: 0.1 }}> </DataTable.Title>
++        </DataTable.Header>
+ 
+-        {races.map((r) => (
+-          <DataTable.Row
+-            key={r.id}
+-            onPress={() => selectRace(r.id)}
+-            style={{
+-              backgroundColor: selectedRaceId === r.id ? '#e6e1ff' : undefined,
+-            }}
+-          >
+-            <DataTable.Cell>
+-              <Checkbox
+-                status={selectedRaceId === r.id ? 'checked' : 'unchecked'}
+-                onPress={() => selectRace(r.id)}
+-              />
+-            </DataTable.Cell>
+-            <DataTable.Cell>{r.name}</DataTable.Cell>
+-            <DataTable.Cell>{r.type === 'classic' ? 'Classique' : 'Endurance'}</DataTable.Cell>
+-            <DataTable.Cell numeric>
+-              {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
+-              {format(r.start, 'dd/MM/yyyy HH:mm')}
+-            </DataTable.Cell>
+-          </DataTable.Row>
+-        ))}
++        {races.map((r) => {
++          const isSelected = selectedRaceId === r.id;
++          return (
++            <DataTable.Row
++              key={r.id}
++              onPress={() => selectRace(r.id)}
++              style={{ backgroundColor: isSelected ? '#e6dfff' : undefined }}
++            >
++              <DataTable.Cell style={{ flex: 0.1 }}>
++                <Checkbox
++                  status={isSelected ? 'checked' : 'unchecked'}
++                  onPress={() => selectRace(r.id)}
++                />
++              </DataTable.Cell>
++              <DataTable.Cell style={{ flex: 0.35 }}>{r.name}</DataTable.Cell>
++              <DataTable.Cell style={{ flex: 0.2 }}>
++                {r.type === 'classic' ? 'Classique' : 'Endurance'}
++              </DataTable.Cell>
++              <DataTable.Cell numeric style={{ flex: 0.2 }}>
++                {r.type === 'classic' ? `${r.laps} tours` : `${r.duration} min`}
++              </DataTable.Cell>
++              <DataTable.Cell numeric style={{ flex: 0.25 }}>
++                {format(r.start, 'dd/MM/yyyy HH:mm')}
++              </DataTable.Cell>
++              <DataTable.Cell numeric style={{ flex: 0.1 }}>
++                <Button
++                  onPress={() => deleteRace(r.id)}
++                  compact
++                  icon="trash-can"
++                  accessibilityLabel="Supprimer"
++                />
++              </DataTable.Cell>
++            </DataTable.Row>
++          );
++        })}
+       </DataTable>
+     </ScrollView>
+   );
+ }
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/NewRaceForm.tsx
+@@
+-import React, { useState } from 'react';
+-import { View } from 'react-native';
+-import { Button, RadioButton, TextInput } from 'react-native-paper';
+-import DateTimeField from './DateTimeField';
+-import { RaceType } from '../types';
++import React, { useState } from 'react';
++import { View } from 'react-native';
++import { Button, RadioButton, TextInput } from 'react-native-paper';
++import DateTimeField from './DateTimeField';
++import { RaceType } from '../types';
+ 
+ interface Props {
+   onCancel: () => void;
+-  onSave: (race: {
+-    name: string;
+-    type: RaceType;
+-    laps?: number;
+-    duration?: number;
+-    start: Date;
+-  }) => void;
++  onSave: (race: {
++    name: string;
++    type: RaceType;
++    laps?: number;
++    duration?: number;
++    start: Date;
++  }) => void;
+ }
+ 
+ export default function NewRaceForm({ onCancel, onSave }: Props) {
+   const [name, setName] = useState('');
+   const [type, setType] = useState<RaceType>('classic');
+@@
+-  function handleSubmit() {
+-    onSave({
+-      name,
+-      type,
+-      laps: type === 'classic' ? laps : undefined,
+-      duration: type === 'endurance' ? duration : undefined,
+-      start,
+-    });
+-  }
++  function handleSubmit() {
++    onSave({
++      name,
++      type,
++      laps: type === 'classic' ? laps : undefined,
++      duration: type === 'endurance' ? duration : undefined,
++      start,
++    });
++  }
+ 
+   return (
+     <View style={{ gap: 16 }}>
+       <TextInput
+         label="Nom de la course"
+@@
+       <Button mode="contained" onPress={handleSubmit}>
+         Enregistrer
+       </Button>
+     </View>
+   );
+ }
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/Registration.tsx
+@@
+-import React, { useState } from 'react';
+-import { View, FlatList } from 'react-native';
+-import { Button, TextInput, List } from 'react-native-paper';
+-import { useRace } from '../contexts/RaceContext';
+-import { Driver } from '../types';
++import React, { useState } from 'react';
++import { View, FlatList } from 'react-native';
++import { Button, TextInput, List } from 'react-native-paper';
++import { useRace } from '../contexts/RaceContext';
++import { Driver } from '../types';
++import { nanoid } from 'nanoid';
+ 
+ export default function Registration() {
+-  const { selectedRace, updateDrivers } = useRace() as any;
+-  const [name, setName] = useState('');
++  const { races, selectedRaceId, updateDrivers } = useRace();
++  const race = races.find((r) => r.id === selectedRaceId);
++  const [name, setName] = useState('');
+ 
+-  if (!selectedRace) {
++  if (!race) {
+     return <List.Item title="Aucune course sélectionnée" />;
+   }
+ 
+-  function add() {
+-    const d: Driver = { id: String(Date.now()), name };
+-    updateDrivers([...selectedRace.drivers, d]);
+-    setName('');
+-  }
++  function add() {
++    const d: Driver = { id: nanoid(), name };
++    updateDrivers([...race.drivers, d]);
++    setName('');
++  }
+ 
+-  function remove(id: string) {
+-    updateDrivers(selectedRace.drivers.filter((d: Driver) => d.id !== id));
+-  }
++  function remove(id: string) {
++    updateDrivers(race.drivers.filter((dr) => dr.id !== id));
++  }
+ 
+   return (
+     <View style={{ padding: 16, gap: 12 }}>
+       <TextInput
+         label="Nom du pilote"
+         value={name}
+         onChangeText={setName}
+       />
+       <Button onPress={add} mode="contained">
+         Ajouter
+       </Button>
+-      <FlatList data={selectedRace.drivers} keyExtractor={(d) => d.id} renderItem={({ item }) => (
+-        <List.Item
+-          title={item.name}
+-          right={() => (
+-            <Button icon="delete" onPress={() => remove(item.id)}>
+-              Supprimer
+-            </Button>
+-          )}
+-        />
+-      )} />
++      <FlatList
++        data={race.drivers}
++        keyExtractor={(d) => d.id}
++        renderItem={({ item }) => (
++          <List.Item
++            title={item.name}
++            right={() => (
++              <Button icon="delete" onPress={() => remove(item.id)}>
++                Supprimer
++              </Button>
++            )}
++          />
++        )}
++      />
+     </View>
+   );
+ }
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/Timing.tsx
+@@
+-import React, { useRef, useState } from 'react';
+-import { View, Text } from 'react-native';
+-import { Button, List } from 'react-native-paper';
+-import { useRace } from '../contexts/RaceContext';
+-import { Lap } from '../types';
++import React, { useRef, useState } from 'react';
++import { View, Text } from 'react-native';
++import { Button, List } from 'react-native-paper';
++import { useRace } from '../contexts/RaceContext';
++import { Lap } from '../types';
++import { nanoid } from 'nanoid';
+ 
+ export default function Timing() {
+-  const { selectedRace, addLap } = useRace() as any;
+-  const [running, setRunning] = useState(false);
+-  const [elapsed, setElapsed] = useState(0);
+-  const timerRef = useRef<NodeJS.Timer | null>(null);
++  const { races, selectedRaceId, addLap } = useRace();
++  const race = races.find((r) => r.id === selectedRaceId);
++
++  const [running, setRunning] = useState(false);
++  const [elapsed, setElapsed] = useState(0);
++  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+ 
+-  if (!selectedRace) {
++  if (!race) {
+     return <Text style={{ padding: 16, color: 'red' }}>Aucune course sélectionnée.</Text>;
+   }
+ 
+   function start() {
+     if (running) return;
+     setRunning(true);
+     const start = Date.now() - elapsed;
+-    timerRef.current = setInterval(() => {
+-      setElapsed(Date.now() - start);
+-    });
++    timerRef.current = setInterval(() => {
++      setElapsed(Date.now() - start);
++    }, 100);
+   }
+ 
+   function stop() {
+     if (timerRef.current) clearInterval(timerRef.current);
+     setRunning(false);
+   }
+ 
+   function reset() {
+     stop();
+     setElapsed(0);
+   }
+ 
+   function recordLap() {
+-    const lap: Lap = { id: String(Date.now()), driverId: 'unk', time: elapsed };
+-    addLap(lap);
++    const lap: Lap = { id: nanoid(), driverId: 'unk', time: elapsed };
++    addLap(lap);
+   }
+ 
+   return (
+     <View style={{ padding: 16, gap: 16 }}>
+-      <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{selectedRace.name}</Text>
++      <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{race.name}</Text>
+       <Text style={{ fontSize: 32, textAlign: 'center' }}>{formatMs(elapsed)}</Text>
+       <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center' }}>
+         {!running ? (
+           <Button mode="contained" onPress={start}>
+             Démarrer
+@@
+       </View>
+       <Button mode="contained" onPress={recordLap} disabled={!running}>
+         Enregistrer un tour
+       </Button>
+-      <List.Section title="Tours">
+-        {selectedRace.lapsData.map((l: Lap, i: number) => (
+-          <List.Item key={l.id} title={`Tour ${i + 1} - ${formatMs(l.time)}`} />
+-        ))}
+-      </List.Section>
++      <List.Section title="Tours">
++        {race.lapsData.map((l: Lap, i: number) => (
++          <List.Item key={l.id} title={`Tour ${i + 1} - ${formatMs(l.time)}`} />
++        ))}
++      </List.Section>
+     </View>
+   );
+ }
+ 
+ function formatMs(ms: number) {
+   const sec = Math.floor(ms / 1000);
+   const m = Math.floor(sec / 60);
+   const s = sec % 60;
+   const cs = Math.floor((ms % 1000) / 10);
+   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+ }
+*** End Patch
+*** Begin Patch
+*** Update File: src/components/Results.tsx
+@@
+-import React from 'react';
+-import { View } from 'react-native';
+-import { Button, DataTable } from 'react-native-paper';
+-import { useRace } from '../contexts/RaceContext';
+-import { exportCsv } from '../utils/exportCsv';
+-import { Lap } from '../types';
++import React from 'react';
++import { View } from 'react-native';
++import { Button, DataTable } from 'react-native-paper';
++import { useRace } from '../contexts/RaceContext';
++import { exportCsv } from '../utils/exportCsv';
++import { Lap } from '../types';
+ 
+ export default function Results() {
+-  const { selectedRace } = useRace() as any;
++  const { races, selectedRaceId } = useRace();
++  const race = races.find((r) => r.id === selectedRaceId);
+ 
+-  if (!selectedRace) {
++  if (!race) {
+     return null;
+   }
+ 
+   function onExport() {
+-    exportCsv(selectedRace);
++    exportCsv(race);
+   }
+ 
+   return (
+     <View style={{ padding: 16 }}>
+       <Button mode="contained" onPress={onExport} style={{ marginBottom: 16 }}>
+         Exporter CSV
+       </Button>
+       <DataTable>
+         <DataTable.Header>
+           <DataTable.Title>Pilote</DataTable.Title>
+           <DataTable.Title numeric>Tour</DataTable.Title>
+           <DataTable.Title numeric>Temps</DataTable.Title>
+         </DataTable.Header>
+-        {selectedRace.lapsData.map((l: Lap, i: number) => (
+-          <DataTable.Row key={l.id}>
+-            <DataTable.Cell>
+-              {selectedRace.drivers.find((d) => d.id === l.driverId)?.name || '—'}
+-            </DataTable.Cell>
+-            <DataTable.Cell numeric>{i + 1}</DataTable.Cell>
+-            <DataTable.Cell numeric>{(l.time / 1000).toFixed(2)} s</DataTable.Cell>
+-          </DataTable.Row>
+-        ))}
++        {race.lapsData.map((l: Lap, i: number) => {
++          const driver = race.drivers.find((d) => d.id === l.driverId)?.name || '—';
++          return (
++            <DataTable.Row key={l.id}>
++              <DataTable.Cell>{driver}</DataTable.Cell>
++              <DataTable.Cell numeric>{i + 1}</DataTable.Cell>
++              <DataTable.Cell numeric>{(l.time / 1000).toFixed(2)} s</DataTable.Cell>
++            </DataTable.Row>
++          );
++        })}
+       </DataTable>
+     </View>
+   );
+ }
+*** End Patch
+*** Begin Patch
+*** Update File: src/utils/exportCsv.ts
+@@
+-import * as FileSystem from 'expo-file-system';
+-import { shareAsync } from 'expo-sharing';
+-import { Race } from '../types';
++import * as FileSystem from 'expo-file-system';
++import { Race, Lap, Driver } from '../types';
++
++// Chargement dynamique pour éviter les soucis web / natif
++let shareFn: undefined | ((uri: string) => Promise<void>);
++
++async function ensureShare() {
++  if (shareFn) return;
++  try {
++    const Sharing = await import('expo-sharing');
++    shareFn = Sharing.shareAsync;
++  } catch {
++    // Fallback web : téléchargement direct
++    shareFn = async (uri: string) => {
++      const res = await FileSystem.readAsStringAsync(uri);
++      const blob = new Blob([res], { type: 'text/csv;charset=utf-8' });
++      const url = URL.createObjectURL(blob);
++      const a = document.createElement('a');
++      a.href = url;
++      a.download = 'results.csv';
++      a.click();
++      URL.revokeObjectURL(url);
++    };
++  }
++}
+ 
+ export async function exportCsv(race: Race) {
+-  const headers = ['Driver', 'Lap', 'Time(s)'];
+-  const rows = race.lapsData.map((l, i) => [
+-    race.drivers.find((d) => d.id === l.driverId)?.name || '',
+-    i + 1,
+-    (l.time / 1000).toFixed(2),
+-  ]);
+-  const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+-  const fileUri = FileSystem.cacheDirectory + 'results.csv';
+-  await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+-  await shareAsync(fileUri);
++  await ensureShare();
++
++  const headers = ['Driver', 'Lap', 'Time(s)'];
++  const rows = race.lapsData.map((l: Lap, i: number) => [
++    race.drivers.find((d: Driver) => d.id === l.driverId)?.name || '',
++    i + 1,
++    (l.time / 1000).toFixed(2),
++  ]);
++
++  const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
++  const fileUri = FileSystem.cacheDirectory + 'results.csv';
++  await FileSystem.writeAsStringAsync(fileUri, csv, {
++    encoding: FileSystem.EncodingType.UTF8,
++  });
++  await shareFn!(fileUri);
+ }
+*** End Patch
