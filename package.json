@@ -2,11 +2,16 @@
   "name": "my-race-app",
   "version": "1.0.0",
   "main": "index.ts",
+  "private": true,
+
   "scripts": {
-    "lint": "npx eslint \"src/**/*.{ts,tsx}\" --max-warnings=10",
-    "typecheck": "tsc --noEmit",
-    "build:web": "npx expo export --platform web --output-dir web-build"
+    "start": "expo start",
+    "web": "expo start --web",
+    "build:web": "npx expo export --platform web --output-dir web-build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=10",
+    "typecheck": "tsc --noEmit"
   },
+
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
     "@react-native-community/datetimepicker": "8.4.1",
@@ -28,6 +33,7 @@
     "react-native-uuid": "^2.0.3",
     "react-native-web": "~0.20"
   },
+
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
@@ -39,6 +45,5 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
     "typescript": "~5.8.3"
-  },
-  "private": true
+  }
 }
